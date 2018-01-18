@@ -1,0 +1,16 @@
+{
+	"__default__" :
+	{
+		"params": "-N {params.jobname} -o /store/EQUIPES/LGBMB/dchristiany/workflow_kraken_blast/logs/cluster/{params.jobname}.out -e /store/EQUIPES/LGBMB/dchristiany/workflow_kraken_blast/logs/cluster/{params.jobname}.err -pe orte {threads} -l h_vmem={params.mem}G,h_stack=124M -V ",		
+		"name" : "{rule}.{wildcards}",
+		"output" : "/store/EQUIPES/LGBMB/dchristiany/workflow_kraken_blast/logs/cluster/{rule}.{wildcards}.out",
+		"error" : "/store/EQUIPES/LGBMB/dchristiany/workflow_kraken_blast/logs/cluster/{rule}.{wildcards}.err",
+		"threads" : "orte {threads}",
+		"mem" : "h_vmem=60G,h_stack=124M"
+	},
+
+	"kraken":
+	{"params": "-N {params.jobname} -o /store/EQUIPES/LGBMB/dchristiany/workflow_kraken_blast/logs/cluster/{params.jobname}.out -e /store/EQUIPES/LGBMB/dchristiany/workflow_kraken_blast/logs/cluster/{params.jobname}.err -pe orte {threads} -l h_vmem={params.mem}G,h_stack=124M -V -l h='node29.example.org'"
+	}
+
+}

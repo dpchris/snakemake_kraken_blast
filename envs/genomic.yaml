@@ -1,0 +1,14 @@
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - kraken=1.0
+  - seqtk=1.2
+  - blast=2.6.0
+  - bwa=0.7.17
+  - samtools=1.6
+  - pigz=2.3.4
+  - krona=2.7
+  - bbmap=37.78
+  - fastqc=0.11.6

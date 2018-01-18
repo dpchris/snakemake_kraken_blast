@@ -1,0 +1,6 @@
+samples:
+        B2F05_frenchwastewater_spiked_17-D395_FR-META01_140517_NextSeq500PE80_TruSeq: B2F05_frenchwastewater_spiked_17-D395_FR-META01_140517_MiSeqPE250_TruSeq_R1.fastq.gz
+        B2F06_italianair_spiked_BCW_IT-META01_050517_NextSeq500_Nextera: B2F06_italianair_spiked_BCW_IT-META01_050517_NextSeq500_Nextera_R1.fastq.gz
+        B2F10_germanwastewater_spiked_17-D516_GE-META01_NextSeq500_TruSeq: B2F10_germanwastewater_spiked_17-D516_GE-META01_NextSeq500_TruSeq_R1.fastq.gz
+        B2F11_swedishwastewater_spiked_17-D549_SE-META01_NextSeq500_TruSeq: B2F11_swedishwastewater_spiked_17-D549_SE-META01_NextSeq500_TruSeq_R1.fastq.gz
+        B2F12_germanwastewater_unspiked_17-D789_GE-META01_NextSeq500_TruSeq: B2F12_germanwastewater_unspiked_17-D789_GE-META01_NextSeq500_TruSeq_R1.fastq.gz
