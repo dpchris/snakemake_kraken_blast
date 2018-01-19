@@ -2,17 +2,8 @@
 shell.executable("/bin/bash")
 configfile: "config.yaml"
 
-
-#samples=["B2F05_frenchwastewater_spiked_17-D395_FR-META01_140517_NextSeq500PE80_TruSeq",
-#			"B2F06_italianair_spiked_BCW_IT-META01_050517_NextSeq500_Nextera",
-#			"B2F10_germanwastewater_spiked_17-D516_GE-META01_NextSeq500_TruSeq",
-#			"B2F11_swedishwastewater_spiked_17-D549_SE-META01_NextSeq500_TruSeq",
-#			"B2F12_germanwastewater_unspiked_17-D789_GE-META01_NextSeq500_TruSeq"]
-
-samples=["B2F12_germanwastewater_unspiked_17-D789_GE-META01_NextSeq500_TruSeq"]
 strains=["anthracis","kurstaki","10987"]
-
-#samples=config["samples"]
+samples=config["samples"]
 
 rule all:
 	input:
@@ -22,7 +13,7 @@ rule all:
 		expand("krona_results/{sample}_rDNA_depleted_{strand}_cdb.html",strand=["R1","R2","single"],sample=samples)
 
 #index of ref fasta for depletion of ribosomal DNA (16S,23S)
-rule bwa_index:
+rule bwa_index_silva:
 	input:
 		"silva/silva_128_lsu_ssu_tax.fasta"
 	output:
@@ -31,6 +22,24 @@ rule bwa_index:
 		"silva/silva_128_lsu_ssu_tax.fasta.bwt",
 		"silva/silva_128_lsu_ssu_tax.fasta.pac",
 		"silva/silva_128_lsu_ssu_tax.fasta.sa"
+	conda:
+		"envs/genomic.yaml"
+	threads:1
+	params:
+		mem=10,
+		jobname="bwa_index_silva"
+	shell :
+		"bwa index {input}"
+
+rule bwa_index:
+	input:
+		"reference_genomes/{sample}_genome.fa"
+	output:
+		"reference_genomes/{sample}_genome.fa.amb",
+		"reference_genomes/{sample}_genome.fa.ann",
+		"reference_genomes/{sample}_genome.fa.bwt",
+		"reference_genomes/{sample}_genome.fa.pac",
+		"reference_genomes/{sample}_genome.fa.sa"
 	conda:
 		"envs/genomic.yaml"
 	threads:1
@@ -72,13 +81,13 @@ rule bbduk:
 	shell:
 		"bbduk.sh in={input.r1} in2={input.r2} out={output.r1} out2={output.r2} outs={output.s} "
 		"ref=adapters.fa " #trim of adapters
-		"ktrim=r k=23 mink=11 hdist=1 tpe tbo ftl=10 qtrim=r trimq=28 threads=12 overwrite=true" #trim of 10 first bp and quality under 28
+		"ktrim=r k=23 mink=11 hdist=1 tpe tbo qtrim=r trimq=28 threads=12 overwrite=true" #trim of bp with quality under 28
 
 rule compression_into_gzip:
 	input:
 		"fastq/{sample}.fq"
 	output:
-		"fastq/{sample}.fq.gz"
+		protected("fastq/{sample}.fq.gz")
 	conda:
 		"envs/genomic.yaml"
 	threads:12
@@ -157,7 +166,7 @@ rule compression_into_gzip2:
 	input: 
 		"rDNA_depleted/{sample}.fq"
 	output:
-		"rDNA_depleted/{sample}.fq.gz"
+		protected("rDNA_depleted/{sample}.fq.gz")
 	conda:
 		"envs/genomic.yaml"
 	threads:12
@@ -172,7 +181,7 @@ rule kraken:
 		kdb="/store/EQUIPES/LGBMB/dchristiany/kraken_databases/kraken_customdb_28-11-17_modif_kurstaki",
 		reads="rDNA_depleted/{sample}.fq.gz"
 	output:
-		"kraken_results/{sample}_cdb.txt"
+		protected("kraken_results/{sample}_cdb.txt")
 	conda:
 		"envs/genomic.yaml"
 	threads:20
@@ -308,7 +317,7 @@ rule compression_into_gzip3:
 	input: 
 		"kraken_fastq/{sample}.fq"
 	output:
-		"kraken_fastq/{sample}.fq.gz"
+		protected("kraken_fastq/{sample}.fq.gz")
 	conda:
 		"envs/genomic.yaml"
 	threads:12
@@ -336,7 +345,7 @@ rule megablast:
 	input:
 		"kraken_fasta/{sample}_{strand}.fa"
 	output:
-		"megablast_results/{sample}_blast_output_{strand}.txt"
+		protected("megablast_results/{sample}_blast_output_{strand}.txt")
 	conda:
 		"envs/genomic.yaml"
 	threads:12
@@ -410,7 +419,7 @@ rule blast_reads_id_single:
 rule blast_subseq_paired:
 	input:
 		reads="kraken_fastq/{sample}_rDNA_depleted_{strain}_{strand}.fq.gz",
-		reads_id="blast_reads_id/{sample}_rDNA_depleted_{strain}_blast_reads_id_{strand}.txt"
+		reads_id="blast_reads_id/{sample}_rDNA_depleted_{strain}_blast_paired_reads_id.txt"
 	output:
 		"blast_fastq/{sample}_rDNA_depleted_{strain}_{strand,R[0-9]}.fq"
 	conda:
@@ -470,7 +479,7 @@ rule compression_into_gzip4:
 	input: 
 		"blast_fastq/{sample}.fq"
 	output:
-		"blast_fastq/{sample}.fq.gz"
+		protected("blast_fastq/{sample}.fq.gz")
 	conda:
 		"envs/genomic.yaml"
 	threads:12
@@ -486,9 +495,9 @@ rule compression_into_gzip4:
 rule bwa_map2:
 	input :
 		ref="reference_genomes/{strain}_genome.fa",
+		index="reference_genomes/{strain}_genome.fa.amb",
 		r1="{tool}_fastq/{sample}_rDNA_depleted_{strain}_R1.fq.gz",
-		r2="{tool}_fastq/{sample}_rDNA_depleted_{strain}_R2.fq.gz",
-
+		r2="{tool}_fastq/{sample}_rDNA_depleted_{strain}_R2.fq.gz"
 	output:
 		temp("{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_paired_{strain}.bam")
 	conda:
@@ -497,15 +506,17 @@ rule bwa_map2:
 		rg="@RG\\tID:{sample}\\tSM:{sample}",
 		mem=120,
 		jobname="bwa_map2.{tool}_{sample}_rDNA_depleted_{strain}"
-	threads: 12
+	threads:12
 	shell:
 		"(bwa mem -M -R '{params.rg}' -t {threads} {input.ref} {input.r1} {input.r2} | "
 		"samtools view -@ {threads} -Sb -o {output})"
+
 
 #mapping of single reads identified as species of interest
 rule bwa_map_single:
 	input:
 		ref="reference_genomes/{strain}_genome.fa",
+		index="reference_genomes/{strain}_genome.fa.amb",
 		s="{tool}_fastq/{sample}_rDNA_depleted_{strain}_single.fq.gz"
 	output:
 		temp("{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_single_{strain}.bam")
@@ -553,7 +564,7 @@ rule sorting:
 	input:
 		"{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_merged_{strain}.fixed.bam"
 	output:
-		"{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_merged_{strain}.sorted.bam"
+		protected("{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_merged_{strain}.sorted.bam")
 	conda:
 		"envs/genomic.yaml"
 	threads:12
