@@ -2,18 +2,21 @@
 shell.executable("/bin/bash")
 configfile: "config.yaml"
 
-strains=["anthracis","kurstaki","10987"]
-samples=config["samples"]
+strains=["anthracis","kurstaki","10987","hispaniensis"]
+
+#samples=config["samples"]
 
 rule all:
 	input:
-		expand("{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_merged_{strain}.sorted.bam.bai",tool=["kraken","blast"],strain=strains,sample=samples),
+		#expand("{tool}_alignment_{strain}/{sample}_rDNA_depleted_{strain}_aln/{sample}_aln_merged_{strain}.sorted.bam.bai",tool=["kraken","blast"],strain=strains,sample=samples),
 		#expand("fastqc/untrimmed/{sample}_{strand}_fastqc.html",strand=["R1","R2"],sample=samples),
-		expand("fastqc/trimmed/{sample}_trimmed_{strand}_fastqc.html",strand=["R1","R2","single"],sample=samples),
-		expand("krona_results/{sample}_rDNA_depleted_{strand}_cdb.html",strand=["R1","R2","single"],sample=samples)
+		#expand("fastqc/trimmed/{sample}_trimmed_{strand}_fastqc.html",strand=["R1","R2","single"],sample=samples),
+		#expand("fastqc/rDNA_depleted/{sample}_rDNA_depleted_{strand}_fastqc.html",strand=["R1","R2","single"],sample=samples),
+		expand("krona_results/{sample}_rDNA_depleted_{strand}.html",strand=["R1","R2","single"],sample=samples)
 
 #index of ref fasta for depletion of ribosomal DNA (16S,23S)
 rule bwa_index_silva:
+
 	input:
 		"silva/silva_128_lsu_ssu_tax.fasta"
 	output:
@@ -162,6 +165,21 @@ rule reads_extraction:
 	shell:
 		"samtools bam2fq -@ {threads} -f4 {input} -1 {output.ffastq} -2 {output.rfastq} -s {output.sfastq} -n "
 
+rule fastqc3:
+	input:
+		"rDNA_depleted/{sample}.fq.gz"
+	output:
+		"fastqc/rDNA_depleted/{sample}_fastqc.html",
+		"fastqc/rDNA_depleted/{sample}_fastqc.zip"
+	conda:
+		"envs/genomic.yaml"
+	threads:12
+	params:
+		mem=120,
+		jobname="fastqc3.{sample}"
+	shell:
+		"fastqc {input} -o fastqc/trimmed/ -t {threads}"
+
 rule compression_into_gzip2:
 	input: 
 		"rDNA_depleted/{sample}.fq"
@@ -191,19 +209,20 @@ rule kraken:
 	shell:
 		"kraken --db {input.kdb} --fastq-input --gzip-compressed --threads {threads} --output {output} {input.reads}"
 
+
 rule krona:
 	input:
-		"kraken_results/{sample}.txt"
+		"kraken_results/{sample}_cdb.txt"
 	output:
 		"krona_results/{sample}.html"
 	conda:
-		"envs/genomic.yaml"
-	threads:6
+		"envs/env_krona.yaml"
+	threads:1
 	params:
 		mem=60,
 		jobname="krona.{sample}"
 	shell:
-		"ktImportTaxonomy {input} -o {output} -q 2 -t 3 -s 0"	
+		"ktImportTaxonomy {input} -o {output} -q 2 -t 3 -k "	
 
 #get reads_id identified as species of interest
 rule extract_reads_id:
@@ -367,7 +386,7 @@ rule sort_blast_output:
 		jobname="sort_blast_output.{sample}_{strain}_{strand}"
 	run:
 		if wildcards.strain == 'kurstaki' :
-			shell("cat {input} | grep thuringiensis | egrep 'kurstaki|Bc601|YWC2-8|YC-10' | sort -k1,1 -u > {output} || true" )
+			shell("cat {input} | grep thuringiensis | egrep 'kurstaki|Bc601|YWC2-8|YC-10|galleriae' | sort -k1,1 -u > {output} || true" )
 		else :
 			shell("cat {input} grep {wildcards.strain} | sort -k1,1 -u > {output} || true" )
 
